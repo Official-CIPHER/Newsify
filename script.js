@@ -1,84 +1,87 @@
-const API_KEY = "975c10ebf7dc445ca6405da2785060f5";
-const url = "https://newsapi.org/v2/everything?q=";
+const API_KEY = "c09e7066d6bb86abab2437b0dccc0e11";
+const url = "https://gnews.io/api/v4/search?q=";
 
-let DATA_ARRAY = [];//articles
+let DATA_ARRAY = []; // Articles
 
-//use to fetch data from news api 
-async function fetchData(query) {
-    const res = await fetch(`${url}${query}&apiKey=${API_KEY}`);
-    // console.log(`${url}${query}&apiKey=${API_KEY}`);
-    const data = await res.json();
-    // console.log(data);
+// Use to fetch data from GNews API
+async function fetchData(query, page = 1) {
+    const response = await fetch(`${url}${query}&token=${API_KEY}&page=${page}&max=50`);
+    const data = await response.json();
     return data;
-
-    // DATA_ARRAY = [...data.articles]
 }
 
-fetchData("all").then(data => renderMain(data.articles));
+// Fetch up to 100 articles
+async function fetchAllNews(query) {
+    let allArticles = [];
+    const maxPages = 2; // Number of pages to request
 
-//menu button setting
+    for (let page = 1; page <= maxPages; page++) {
+        const data = await fetchData(query, page);
+        if (data.articles) {
+            allArticles = allArticles.concat(data.articles);
+        }
+    }
+
+    return allArticles;
+}
+
+fetchAllNews("all").then(articles => renderMain(articles));
+
+// Menu button setting
 let mobileMenu = document.querySelector(".mobile");
 let menuBtn = document.querySelector(".menuBtn");
 
-let menuBtnDisplay = true;
-
-// side menu toogle effect for mobile use
+// Side menu toggle effect for mobile use
 menuBtn.addEventListener("click", () => {
     mobileMenu.classList.toggle("hidden");
 });
 
-//--------->>Render news
+// Render news
 function renderMain(arr) {
     let mainHTML = '';
-    for (let i = 0; i < arr.length; i++) {
-        if(arr[i].urlToImage){
-        mainHTML += `<div class="card">
-        <a href=${arr[i].url}>
-        <img src=${arr[i].urlToImage} lazy="loading" />
-        <h4>${arr[i].title}</h4>
-        <div class="publishbyDate">
-        <p>${arr[i].source.name}</p>
-        <span>•</span>
-        <p>${new Date(arr[i].publishedAt).toLocaleDateString()}</p>
-        </div>
-        <div class="desc">
-        ${arr[i].description}
-        </div>
-        </a>
-        </div>`
-       }
-    }
+    arr.forEach(article => {
+        if (article.image) {
+            mainHTML += `
+            <div class="card">
+                <a href="${article.url}" target="_blank">
+                    <img src="${article.image}" alt="${article.title}" lazy="loading" />
+                    <h4>${article.title}</h4>
+                    <div class="publishbyDate">
+                        <p>${article.source.name}</p>
+                        <span>•</span>
+                        <p>${new Date(article.publishedAt).toLocaleDateString()}</p>
+                    </div>
+                    <div class="desc">
+                        ${article.description}
+                    </div>
+                </a>
+            </div>`;
+        }
+    });
 
-document.querySelector("main").innerHTML=mainHTML;
+    document.querySelector("main").innerHTML = mainHTML;
 }
 
-// searching bar code
-const searchBtn = document.getElementById("searchForm")
-const searchBtmMobile = document.getElementById("searchFormMobile");
-const searchInputMobile = document.getElementById("searchInputMobile")
+// Searching bar code
+const searchBtn = document.getElementById("searchForm");
+const searchBtnMobile = document.getElementById("searchFormMobile");
+const searchInputMobile = document.getElementById("searchInputMobile");
 const searchInput = document.getElementById("searchInput");
 
-searchBtn.addEventListener("submit",async(e)=>{
+searchBtn.addEventListener("submit", async (e) => {
     e.preventDefault();
-    console.log(searchInput.value);
+    const articles = await fetchAllNews(searchInput.value);
+    renderMain(articles);
+});
 
-    const data = await fetchData(searchInput.value);
-    renderMain(data.articles);
-})
-searchBtmMobile.addEventListener("submit",async(e)=>{
+searchBtnMobile.addEventListener("submit", async (e) => {
     e.preventDefault();
-    console.log(searchInputMobile.value);
-    
-    const data = await fetchData(searchInputMobile.value);
-    renderMain(data.articles);
-})
+    const articles = await fetchAllNews(searchInputMobile.value);
+    renderMain(articles);
+});
 
-// active side elements
-async function Search(query){
-    const data = await fetchData(query);
-    renderMain(data.articles);
+// Active side elements
+async function Search(query) {
+    const articles = await fetchAllNews(query);
+    renderMain(articles);
 }
-
-
-
-
